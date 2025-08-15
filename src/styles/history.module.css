@@ -1,0 +1,21 @@
+.container {
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse
+
+}
+
+.table tr {
+    background-color: #ddd;
+    border: .1px solid #111;
+    height: 2.5rem;
+}
+.table td {
+    text-align: center;
+}

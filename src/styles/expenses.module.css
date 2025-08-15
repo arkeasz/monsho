@@ -1,0 +1,66 @@
+.other_expenses {
+    /* background-color: red; */
+}
+
+.table_expenses * {
+    all: unset;
+}
+
+.table_expenses {
+    display: flex;
+    flex-direction: column;
+    width: 100%; 
+    border-collapse: collapse
+}
+
+.table_expenses input {
+    outline: 1px solid #222;
+    text-align: center;
+    padding: .8rem;
+}
+
+.table_expenses tbody {
+    display: flex;
+    flex-direction: column;
+}
+
+.table_expenses thead tr {
+    display: flex;
+    flex: 1;
+    justify-content: space-evenly;
+    background-color: #ddd;
+    padding: .5rem 0;
+    border: .5px solid #111;
+}
+
+.table_expenses tbody tr {
+    /* margin: .5rem 0; */
+    border: .2px solid #111;
+    background-color: #ddd;
+    padding: .5rem 0;
+    display: flex;
+    gap: 2.5rem;
+    align-items: center;
+    justify-content: space-evenly;
+}
+
+.button_actions {
+    width: 9rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+
+}
+
+.button_actions button {
+    padding: 1rem 1.5rem;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.add_expense {
+    cursor: pointer;
+    background-color: #111;
+    padding: 1rem;
+    color: #eee
+}

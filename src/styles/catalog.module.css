@@ -1,0 +1,432 @@
+.catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    place-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+.product {
+    list-style: none;
+    width: calc(100% - 2rem);
+    height: calc(100% - 2rem);
+    display: grid;
+    grid-template-areas: 
+        "title description"
+        "img description";
+    padding: 1rem;
+    background-color: #ddd5;
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-style: normal;
+    grid-template-rows: 3.5rem auto;
+    grid-template-columns: 40% 60%;
+    column-gap: 1rem;
+    border-radius: .51rem;
+    box-shadow: 2px 2px 3px black;
+}
+
+.product_options {
+    display: flex;
+    align-items: stretch;
+    gap: .4rem;
+}
+
+.product_options button {
+    all: unset;
+    padding: .5rem;
+    cursor: pointer;
+    color: #fff;
+    position: relative;
+    background-color: transparent;
+}
+
+.product_options button::after {
+    background-color: #111;
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: -2;
+    transition: height .4s;
+    
+}
+
+.product_options button::before {
+    background-color: rgb(158, 0, 61);
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 0%;
+    bottom: 0;
+    left: 0;
+    z-index: -1;
+    transition: height .4s;
+}
+
+.product_options button:hover::after {
+    height: 5%;
+}
+
+.product_options button:hover::before {
+    height: 95%;
+}
+
+.product_sizes {
+    all: unset;
+    display: flex;
+    justify-content: start;
+
+    gap: .4rem
+}
+
+.product_sizes li {
+    list-style: none;
+}
+
+.product_title {
+    grid-area: title;
+    text-transform: uppercase;
+    width: 100%;
+}
+
+.product_image {
+    grid-area: img;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+}
+
+.product_image img {
+    height: 100%;
+    width: 80%;
+    object-fit: contain;
+}
+
+.product_details {
+    grid-area: description;
+    width: 100%;
+}
+
+.modal {
+    all: unset;
+    background: #111;
+    padding: 1rem;
+    border-radius: .4rem;
+    color: #FFF;
+    display: flex;
+    max-height: calc(80% - 2rem);
+    overflow-y: auto;
+    flex-direction: column;
+}
+
+.modal_top {
+    display: flex;
+    align-items: center;
+}
+
+
+
+.close_button {
+    justify-self: end;
+    /* align-self: end; */
+    background-color: #970026;   
+    color: #fff;
+    font-size: 2rem;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    padding: 0.3rem .8rem;
+    cursor: pointer
+}
+
+.modal_title {
+    width: 96%;
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    text-transform: uppercase;
+    font-style: normal;
+    text-align: center;
+}
+
+.modal_content {
+    display: flex;
+    gap: .5rem;
+}
+
+.modal_form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    text-transform: uppercase;
+    font-style: normal;
+
+    input {
+        all: unset;
+    }
+
+    textarea {
+        all: unset;
+        outline: .2rem solid #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+.input_wrapped {
+  position: relative;
+  display: block;      
+}
+
+.input_wrapped::after {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: -2px;
+  height: 3px;
+  width: 0%;
+  background-color: #ccc;
+  transition: width 260ms ease;
+  pointer-events: none;
+}
+
+
+.input_wrapped::before {
+  content: "";
+  position: absolute;
+  right: -2px;
+  bottom: 0px;
+  width: 3px;
+  height: 0%;
+  background-color: #ccc;
+  transition: height 260ms ease;
+  pointer-events: none;
+}
+
+.input_wrapped:focus-within::after {
+  width: 101%;
+}
+
+.input_wrapped:focus-within::before {
+    height: 101%
+}
+
+.modal_form input {
+    position: relative;
+    border-bottom: .1rem solid #eee;
+    border-left: .1rem solid #eee;
+    padding: .5rem;
+    width: 12rem;
+}
+
+.modal_form textarea {
+    width: 100%
+}
+
+.modal_form input:active {
+    background-color: #dddddd1f;
+}
+
+.modal_form_metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    max-width: 500px;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+}
+
+.modal_save_button {
+    background-color: #f1cc34;
+    padding: 1.4rem;
+    font-family: var(--font-atma), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    text-transform: uppercase;
+    font-style: normal;
+    border: none;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.modal_save_button:hover {
+    background-color: #E1BC29;
+}
+
+.modal_form_sizes {
+    display: flex;
+    gap: 1rem;
+    /* overflow-y: auto; */
+    /* height: 40%; */
+
+    legend {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+}
+
+.modal_form_add_size {
+    all: unset;
+    color: #eee;
+    font-size: 2rem;
+    padding: .3rem 1rem;
+    background-color: #77001e;
+    cursor: pointer;
+}
+
+.form_sizes_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    width: 100%;
+    gap: 1rem;
+    justify-items: center;
+    align-items: center;
+    justify-content: center;
+    align-content: center;
+}
+
+.sizeRow {
+    display: flex;
+    gap: 1rem;
+
+    button {
+        all: unset;
+        cursor: pointer;
+        text-shadow: 1px 1px 10px #1a0000;
+    }
+    input {
+        padding: .54rem .7rem;
+    }
+}
+
+
+.modal_overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: #1118;
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+}
+
+.config {
+    padding: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.filters_form {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    input {
+        all: unset;
+        padding: .4rem;
+        outline: 1px solid #111;
+    }
+}
+
+.config_add_button {
+    background-color: #f1cc34;
+    border: none;
+    padding: 1rem 1.5rem;
+    color: #111;
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    text-transform: uppercase;
+    font-style: normal;
+    cursor: pointer;
+}
+
+.config_add_button:hover {
+    background-color: #E1BC29;
+}
+
+.modal_edit_overlay {
+    all: unset;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #0000005d;
+    width: 100%;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+}
+
+.modal_edit {
+    background-color: #111;
+    color: #eee;
+    display: flex;
+    flex-flow: column wrap;
+    padding: 1rem;
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+
+.modal_edit_form {
+    display: flex;
+    gap: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.modal_edit_form legend {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+
+    button {
+        margin: 0 .5rem;
+        cursor: pointer;
+    }
+}
+
+.modal_edit_details {
+    display: flex;
+    gap: .5rem;
+}
+
+.modal_edit_sizes {
+    display: flex;
+    flex-direction: column;
+    /* flex-wrap: wrap; */
+}
+
+.modal_edit_options {
+    display: flex;
+    gap: .5rem
+}
+
+.modal_edit_options button {
+    padding: .5rem 1rem;
+    background-color: #000;
+    box-shadow: none;
+    border: none;
+    color: #eee;
+    cursor: pointer;
+}

@@ -1,0 +1,38 @@
+.container {
+    background-color: #222;
+    display: flex;
+    color: #fff;
+    justify-content: space-around;
+    align-items: center;
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 300;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+
+.form {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    padding: 20px;
+    background-color: #222;
+    border-radius: 8px;
+
+    input {
+        all: unset;
+        padding: 10px;
+        border: 1px solid #444;
+        border-radius: 4px;
+        background-color: #333;
+        color: #fff;
+        outline: .5px solid #eee;
+    }
+
+    button[type="submit"] {
+        all: unset;
+        padding: 0 .9rem ;
+        background-color: #ddd;
+        color: #222;
+        cursor: pointer;
+    }
+}

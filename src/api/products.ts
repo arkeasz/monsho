@@ -38,7 +38,7 @@ export const getProducts = async (): Promise<Product[]> => {
 
 export const deleteProduct = async(id: string) => {
     await fetch(
-        `${process.env.NEXT_PUBLIC_FUNCTIONS_URL}/deleteProduct/`,
+        `${process.env.NEXT_PUBLIC_FUNCTIONS_URL}/deleteProduct`,
         {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },

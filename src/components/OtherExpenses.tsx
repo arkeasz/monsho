@@ -13,11 +13,17 @@ interface Props {
   dateISO: string;
 }
 function getTodayISO(): string {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  try {
+    return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
+  } catch (err) {
+    const now = new Date();
+    const limaOffsetHours = -5;
+    const limaTime = new Date(now.getTime() + limaOffsetHours * 60 * 60 * 1000);
+    const yyyy = limaTime.getUTCFullYear();
+    const mm = String(limaTime.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(limaTime.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
 }
 
 export default function OtherExpensesTable() {

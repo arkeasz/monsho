@@ -60,13 +60,13 @@ app.put('/', async (req, res) => {
     }
 
     if (body.costPrice !== undefined) {
-      const costPrice = Number(body.costPrice);
+      const costPrice = Math.round(Number(body.costPrice) * 100);
       if (!Number.isFinite(costPrice) || costPrice < 0) return res.status(400).json({ error: 'costPrice inválido' });
       updates.costPrice = costPrice;
     }
 
     if (body.sellPrice !== undefined) {
-      const sellPrice = Number(body.sellPrice);
+      const sellPrice = Math.round(Number(body.sellPrice) * 100);
       if (!Number.isFinite(sellPrice) || sellPrice < 0) return res.status(400).json({ error: 'sellPrice inválido' });
       updates.sellPrice = sellPrice;
     }

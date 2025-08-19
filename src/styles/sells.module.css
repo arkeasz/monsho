@@ -20,7 +20,14 @@
     /* align-content: center; */
     justify-items: stretch;
     /* flex: 1; */
+    position: fixed;
+    top:  25%;
+    right: 1rem;
     gap: 1rem;
+    background-color: #eee;
+    padding: 1rem;
+    box-shadow: 0 0 15px 2px #2222;
+    /* outline:  */
     /* flex-grow: 2; */
 }
 

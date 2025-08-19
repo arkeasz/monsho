@@ -36,7 +36,7 @@ app.use(
 app.use(express.json());
 app.post('/', async (req, res) => {
   try {
-    const {
+    let {
       brand = '',
       code,
       color,
@@ -80,6 +80,8 @@ app.post('/', async (req, res) => {
     }
 
     const { FieldValue } = await import('firebase-admin/firestore');
+    costPrice = Math.round(costPrice*100)
+    sellPrice =  Math.round(sellPrice*100)
 
     const ref = dbP.collection('products').doc();
     await ref.set({

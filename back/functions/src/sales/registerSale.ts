@@ -17,6 +17,19 @@ app.use(
 )
 app.use(express.json());
 
+function getTodayISO(): string {
+  try {
+    return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
+  } catch (err) {
+    const now = new Date();
+    const lima = new Date(now.getTime() + (-5 - now.getTimezoneOffset() / 60) * 3600 * 1000);
+    const yyyy = lima.getUTCFullYear();
+    const mm = String(lima.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(lima.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+}
+
 app.post('/registerSale', async (req, res) => {
   try {
     const { productCode, storeId, quantity, size } = req.body as {
@@ -29,15 +42,18 @@ app.post('/registerSale', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios.' });
     }
 
-    // 0) Buscar el documento del producto por el campo `code`
     const q = await db
       .collection('products')
       .where('code', '==', productCode)
       .limit(1)
       .get();
 
+    if (q.size != Number(size)) {
+      return res.status(404).json({ error: 'Producto no encontrado por talla.' })
+    }
+
     if (q.empty) {
-      return res.status(404).json({ error: 'Producto no encontrado por code.' });
+      return res.status(404).json({ error: 'Producto no encontrado por código.' });
     }
     const prodSnap = q.docs[0];
     console.log('Producto encontrado:', prodSnap);
@@ -45,20 +61,17 @@ app.post('/registerSale', async (req, res) => {
     console.log('Referencia del producto:', productRef);
     const prodData = prodSnap.data()!;
 
-    // 1) Fecha / timestamp
     const now = FieldValue.serverTimestamp();
     const reportRef = db
       .collection('dailyReports')
-      .doc(new Date().toISOString().slice(0, 10));
+      .doc(getTodayISO());
 
     await db.runTransaction(async tx => {
-      // 1) Leer inventario actual
       const snap = await tx.get(productRef);
       const sizesArr: { size: string; quantity: number }[] = snap.data()!.sizes || [];
 
       console.log('📦 Sizes antes:', sizesArr);
 
-      // 2) Crear nuevo array con la talla actualizada
       const updatedSizes = sizesArr.map(s => {
         if (s.size === size) {
           const newQty = s.quantity - quantity;
@@ -71,36 +84,49 @@ app.post('/registerSale', async (req, res) => {
       });
 
       console.log('🔄 Sizes después:', updatedSizes);
+      const rawApplied = req.body.appliedPrice;
+      const parsedApplied = rawApplied === undefined || rawApplied === null
+        ? NaN
+        : Number(rawApplied);
+      const originalSellPrice = prodData.sellPrice as number;
+      let appliedSellPrice: number;
+      if (!Number.isNaN(parsedApplied) && parsedApplied !== 0) {
+        appliedSellPrice = Math.round(parsedApplied * 100);
+        if (appliedSellPrice < 0) {
+          throw new Error('appliedPrice inválido (negativo)');
+        }
+      } else {
+        appliedSellPrice = originalSellPrice;
+      }
+      const costPrice = prodData.costPrice as number;
 
-      // 3) Calcular subGain
-      const price = prodData.sellPrice as number;
-      const cost  = prodData.costPrice as number;
-      const subGain = (price - cost) * quantity;
+      const subGain = (appliedSellPrice - costPrice) * quantity;
 
-      // 4) Crear la venta
+
       const saleRef = db.collection('sales').doc();
       tx.set(saleRef, {
         productCode,
         storeId,
         quantity,
         size,
+        costPrice,
+        originalSellPrice,
+        appliedSellPrice,
         subGain,
         timestamp: now,
       });
 
-      // 5) Actualizar el producto
-      console.log('✏️ Actualizando producto...');
       tx.update(productRef, {
         sizes: updatedSizes,
         updatedAt: now,
       });
 
-      // 6) Actualizar reporte diario
       const storeTotalsField = `storeTotals.${storeId}`;
       tx.set(reportRef, { date: reportRef.id }, { merge: true });
       tx.update(reportRef, {
         [storeTotalsField]: FieldValue.increment(subGain),
       });
+
       console.log('✅ Transacción lista');
     });
 

@@ -8,15 +8,22 @@ const db = admin.firestore();
 
 const ORIGIN = process.env.WEB_URL || 'http://localhost:3000';
 
+function toCents(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return NaN;
+  return Math.round(n * 100);
+}
+
 const app = express();
 app.use(cors({ origin: ORIGIN }));
 app.use(express.json());
 app.post('/', async (req, res) => {
   try {
-    const { name, costDaily, dateISO } = req.body;
+    let { name, costDaily, dateISO } = req.body;
     if (!name || !dateISO || !Number.isFinite(costDaily)) {
       return res.status(400).json({ error: 'Missing or invalid fields' });
     }
+    costDaily = toCents(costDaily)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
       return res.status(400).json({ error: 'dateISO must be YYYY-MM-DD' });
     }
@@ -27,10 +34,8 @@ app.post('/', async (req, res) => {
 
 
     await db.runTransaction(async (tx) => {
-      // 1) lecturas primero
       const dailySnap = await tx.get(dailyReportRef);
 
-      // 2) crear expense
       tx.set(newExpenseRef, {
         name,
         costDaily,
@@ -38,7 +43,6 @@ app.post('/', async (req, res) => {
         createdAt: FieldValue.serverTimestamp(),
       });
 
-      // 3) construir reportData SIN keys undefined
       const reportData: any = {
         date: dateISO,
         totalExpenses: FieldValue.increment(costDaily),
@@ -47,13 +51,11 @@ app.post('/', async (req, res) => {
         },
       };
 
-      // Si no existía el daily report, añadimos campos para creación
       if (!dailySnap.exists) {
-        reportData.storeTotals = {};            // sólo aquí lo añadimos
+        reportData.storeTotals = {};
         reportData.createdAt = FieldValue.serverTimestamp();
       }
 
-      // 4) set merge (una sola escritura para actualizar/crear)
       tx.set(dailyReportRef, reportData, { merge: true });
     });
 
@@ -68,13 +70,15 @@ app.post('/', async (req, res) => {
 app.put('/:id', async (req, res) => {
   try {
     const expenseId = req.params.id;
-    const { name, costDaily, dateISO } = req.body;
+    let { name, costDaily, dateISO } = req.body;
     if (!dateISO) {
       return res.status(400).json({ error: 'dateISO is required' });
     }
     if (name === undefined && costDaily === undefined) {
       return res.status(400).json({ error: 'Nothing to update' });
     }
+
+    costDaily = toCents(costDaily)
 
     const expenseRef = db.collection('otherExpenses').doc(expenseId);
     const dailyReportRef = db.collection('dailyReports').doc(dateISO);
@@ -87,13 +91,11 @@ app.put('/:id', async (req, res) => {
       const oldData = expenseSnap.data() || {};
       const { FieldValue } = await import('firebase-admin/firestore');
 
-      // Actualiza el gasto con los nuevos datos
       const updates: any = {};
       if (name !== undefined) updates.name = name;
       if (costDaily !== undefined) updates.costDaily = costDaily;
       tx.update(expenseRef, updates);
 
-      // Ajusta totalExpenses si cambió costDaily
       if (typeof costDaily === 'number') {
         const oldCost = oldData.costDaily ?? 0;
         const delta = costDaily - oldCost;
@@ -116,7 +118,7 @@ app.put('/:id', async (req, res) => {
 app.delete('/:id', async (req, res) => {
   try {
     const expenseId = req.params.id;
-    const { dateISO } = req.body; // debe enviarse la fecha para saber qué dailyReport actualizar
+    const { dateISO } = req.body; 
     if (!dateISO) {
       return res.status(400).json({ error: 'dateISO is required' });
     }

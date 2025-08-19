@@ -13,7 +13,9 @@ export default function DailyReport() {
     async function loadReport() {
       try {
         setLoading(true);
-        const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+        const today = new Date().toLocaleDateString('sv-SE', { 
+            timeZone: 'America/Lima' 
+        });   
         const data = await getReportByDate(today);
         setReport(data);
       } catch (err: any) {

@@ -11,7 +11,7 @@ interface NavLinkProps {
 const links: NavLinkProps[] = [
   { href: '/dashboard', title: 'CATÁLOGO' },
   { href: '/dashboard/users', title: 'USUARIOS' },
-  { href: '/dashboard/sells', title: 'VENTAS' },
+  { href: '/dashboard/report', title: 'REPORTE' },
   { href: '/dashboard/history', title: 'HISTORIAL' },
 ];
 

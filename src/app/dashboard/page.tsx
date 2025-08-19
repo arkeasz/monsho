@@ -5,27 +5,23 @@ import { getProducts, createProduct, deleteProduct } from '@/api/products'
 import type { Product } from '@/types/products'
 import Image from 'next/image'
 import ImagesUpload from '@/components/ImagesUpload'
+import SellView from '@/components/SellView'
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
   const [imageKey, setImageKey] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
   const [filterSearch, setFilterSearch] = useState('');
   const [filterColor, setFilterColor] = useState('');
-  const [filterSize, setFilterSize] = useState(''); // texto de talla (p. ej. "M")
-  const [filterMinPrice, setFilterMinPrice] = useState(''); // string para mantener control
+  const [filterSize, setFilterSize] = useState(''); 
+  const [filterMinPrice, setFilterMinPrice] = useState(''); 
   const [filterMaxPrice, setFilterMaxPrice] = useState('');
   const [filterInStockOnly, setFilterInStockOnly] = useState(false);
-
-  const preventMinus = (e: React.KeyboardEvent) => {
-    if (e.key === '-' || e.key === 'Subtract') e.preventDefault();
-  };
 
   const preventPasteNegative = (e: any) => {
     const text = (e.clipboardData || (window as any).clipboardData).getData('text');
@@ -36,25 +32,24 @@ export default function Home() {
   const [editBrand, setEditBrand] = useState('');
   const [editCode, setEditCode] = useState('');
   const [editColor, setEditColor] = useState('');
-  const [editCostPrice, setEditCostPrice] = useState('');
+  const [editCostPrice, setEditCostPrice] = useState(0);
   const [editDescription, setEditDescription] = useState('');
-  const [editSellPrice, setEditSellPrice] = useState('');
+  const [editSellPrice, setEditSellPrice] = useState(0);
   const [editSizes, setEditSizes] = useState<{ size: string; quantity: number }[]>([]);
   const [editImageKey, setEditImageKey] = useState<string | null>(null);
 
-  const FUNCTIONS_URL = process.env.NEXT_PUBLIC_FUNCTIONS_URL || ''; // p.e. http://127.0.0.1:5001/monsho-93029/us-central1
+  const FUNCTIONS_URL = process.env.NEXT_PUBLIC_FUNCTIONS_URL || '';
 
   function openEditModal(p: Product) {
     setEditingProduct(p);
     setEditBrand(p.brand ?? '');
     setEditCode(p.code ?? '');
     setEditColor(p.color ?? '');
-    setEditCostPrice(String(p.costPrice ?? ''));
+    setEditCostPrice(Number(p.costPrice)/100);
     setEditDescription(p.description ?? '');
-    setEditSellPrice(String(p.sellPrice ?? ''));
+    setEditSellPrice(Number(p.sellPrice)/100);
     setEditSizes(p.sizes ? p.sizes.map(s => ({ size: s.size, quantity: Number(s.quantity) })) : []);
     setEditImageKey(p.imageUrl ?? null);
-    setShowEditModal(true); // si quieres usar el mismo modal que para crear; si no, abre otro
   }
   function closeEditModal() {
     setEditingProduct(null);
@@ -65,9 +60,9 @@ export default function Home() {
     brand: string;
     code: string;
     color: string;
-    costPrice: string;
+    costPrice: number;
     description: string;
-    sellPrice: string;
+    sellPrice: number;
     sizes: { size: string; quantity: number }[];
     imageKey: string | null;
   }) {
@@ -93,6 +88,8 @@ export default function Home() {
     if (!editingProduct) return;
     try {
       setEditLoading(true);
+
+
       const payload = buildUpdatePayload(editingProduct, {
         brand: editBrand,
         code: editCode,
@@ -103,7 +100,7 @@ export default function Home() {
         sizes: editSizes,
         imageKey: editImageKey,
       });
-      // si no hay campos para actualizar, cierra
+      
       if (Object.keys(payload).length <= 1) { // solo id
         closeEditModal();
         return;
@@ -118,8 +115,29 @@ export default function Home() {
         const txt = await res.text().catch(() => '');
         throw new Error(txt || `Error ${res.status}`);
       }
-      // refrescar lista
-      setProducts(await getProducts());
+    setProducts(prev => {
+      if (!prev) return prev;
+      return prev.map(p => {
+          if (p.id !== payload.id) return p;
+
+          const updated = { ...p, ...payload };
+
+          if (payload.costPrice !== undefined) {
+            const n = Number(payload.costPrice);
+            if (Number.isFinite(n)) updated.costPrice = Math.round(n * 100);
+          }
+          if (payload.sellPrice !== undefined) {
+            const n = Number(payload.sellPrice);
+            if (Number.isFinite(n)) updated.sellPrice = Math.round(n * 100);
+          }
+
+          if (payload.imageUrl !== undefined) updated.imageUrl = payload.imageUrl;
+          if (payload.imageKey !== undefined) updated.imageUrl = payload.imageKey;
+
+          return updated;
+      });
+    });
+
       closeEditModal();
     } catch (err: any) {
       console.error('update error', err);
@@ -132,7 +150,16 @@ export default function Home() {
   async function handleDelete(productId: string) {
     const ok = confirm('¿Seguro que quieres borrar este producto? Esta acción no se puede deshacer.');
     if (!ok) return;
+
+    const previous = products;
+    const prod   = products.find(p => p.id === productId);
+    if (!prod) {
+      return;
+      // alert("product no encontrado")
+    }
+
     try {
+      setProducts(prev => prev.filter(p => p.id !== productId));
       setDeleteLoadingId(productId);
       const prod = products.find(p => p.id === productId);
       const res = await fetch(`${FUNCTIONS_URL}/deleteProduct`, {
@@ -153,9 +180,8 @@ export default function Home() {
         const txt = await res.text().catch(()=>'');
         throw new Error(txt || `Error ${res.status}`);
       }
-      setProducts(await getProducts());
     } catch (err: any) {
-      alert('Error borrando: ' + (err?.message ?? 'desconocido'));
+      setProducts(previous);
     } finally {
       setDeleteLoadingId(null);
     }
@@ -163,11 +189,11 @@ export default function Home() {
   const [brand, setBrand] = useState('')
   const [code, setCode] = useState('')
   const [color, setColor] = useState('')
-  const [costPrice, setCostPrice] = useState('')
+  const [costPrice, setCostPrice] = useState<any>('')
   const [description, setDescription] = useState('')
-  const [sellPrice, setSellPrice] = useState('')
+  const [sellPrice, setSellPrice] = useState<any>('')
+  const [openViewSale, setOpenViewSale] = useState(false)
 
-  // Para las tallas dinámicas
   const [sizes, setSizes] = useState<{ size: string; quantity: string }[]>([])
 
   useEffect(() => {
@@ -253,13 +279,18 @@ export default function Home() {
     try {
       setLoading(true)
       setError(null)
-      
+
+      if (!code.trim()) throw new Error("El código es obligatorio.");
+      if (!color.trim()) throw new Error("El color es obligatorio.");
+      if (!description.trim()) throw new Error("La descripción es obligatoria.");
+      if (!Array.isArray(sizes) || sizes.length === 0) throw new Error("Debes agregar al menos una talla.");
+
       const payload = {
         brand: '',
-        code,
-        color,
+        code: code.trim(),
+        color: color.trim(),
         costPrice: Number(costPrice),
-        description,
+        description: description.trim(),
         sellPrice: Number(sellPrice),
         sizes: sizes.map(s => ({
           size: s.size.trim(),
@@ -271,7 +302,12 @@ export default function Home() {
       setShowModal(false)
       setLoading(true)
       setProducts(await getProducts())
-      setBrand(''); setCode(''); setColor(''); setCostPrice(''); setDescription(''); setSellPrice('');
+      setBrand(''); 
+      setCode(''); 
+      setColor(''); 
+      setCostPrice(0); 
+      setDescription(''); 
+      setSellPrice(0);
       setSizes([]); setImageKey(null);  
     } catch (err: any) {
       setError(err.message)
@@ -280,7 +316,7 @@ export default function Home() {
     }
   }
 
-    const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const API_KEY = process.env.NEXT_PUBLIC_IMAGES_API_KEY ?? '';
 
   async function fetchSignedUrlForKey(key: string) {
@@ -401,7 +437,6 @@ export default function Home() {
                     </h2>
                     <div className={styles.product_image}>
                       {signedUrls[product.id] ? (
-                        // uso <img> simple para evitar la restricción de dominios de next/image
                         <img
                           src={signedUrls[product.id]}
                           alt={product.code}
@@ -505,10 +540,10 @@ export default function Home() {
                       placeholder="Precio de costo"
                       type="number"
                       min="0"
-                      onKeyPress={preventMinus}
+                      step="0.01"
                       onPaste={preventPasteNegative}
                       value={costPrice}
-                      onChange={e => setCostPrice(e.target.value)}
+                      onChange={e => setCostPrice(Number(e.target.value))}
                       required
                     />
                   </div>
@@ -518,9 +553,9 @@ export default function Home() {
                       type="number"
                       min="0"
                       value={sellPrice}
-                      onChange={e => setSellPrice(e.target.value)}
+                      step="0.01"
+                      onChange={e => setSellPrice(Number(e.target.value))}
                       required
-                      onKeyPress={preventMinus}
                       onPaste={preventPasteNegative}  
                     />
                   </div>
@@ -566,8 +601,8 @@ export default function Home() {
                   </div>
                 </fieldset>
 
-                <button className={styles.modal_save_button} type="submit">
-                  { loading ? 'Guardando' : 'Guardar Product' }
+                <button className={styles.modal_save_button} type="submit"  disabled={loading}>
+                  { loading ? 'Guardando' : 'Guardar Producto' }
                 </button>
               </form>
             </div>
@@ -576,6 +611,7 @@ export default function Home() {
           
         </div>
       )}
+
       {editingProduct && (
           <div className={styles.modal_edit_overlay}>
             <div className={styles.modal_edit}>
@@ -585,8 +621,8 @@ export default function Home() {
                   <legend>Detalles</legend>
                   <input value={editCode} onChange={e => setEditCode(e.target.value)} placeholder="Código" />
                   <input value={editColor} onChange={e => setEditColor(e.target.value)} placeholder="Color" />
-                  <input value={editCostPrice} onChange={e => setEditCostPrice(e.target.value)} placeholder="Precio costo" type="number" />
-                  <input value={editSellPrice} onChange={e => setEditSellPrice(e.target.value)} placeholder="Precio venta" type="number" />
+                  <input step="0.01" value={Number(editCostPrice)} onChange={e => setEditCostPrice(Number(e.target.value))} placeholder="Precio costo" type="number" />
+                  <input step="0.01" value={Number(editSellPrice)} onChange={e => setEditSellPrice(Number(e.target.value))} placeholder="Precio venta" type="number" />
                   <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Descripción" />
                 </fieldset>
                 <fieldset className={styles.modal_edit_sizes }>
@@ -610,13 +646,20 @@ export default function Home() {
                 </fieldset>
                 <fieldset className={styles.modal_edit_options}>
                   <legend>Options</legend>
-                  <button type="submit" disabled={editLoading}>{editLoading ? 'Guardando…' : 'Guardar cambios'}</button>
+                  <button type="submit" disabled={editLoading}>{editLoading ? 'Guardar cambios' : 'Guardando'}</button>
                   <button type="button" onClick={() => { closeEditModal(); setShowModal(false); }}>Cancelar</button>
                 </fieldset>
               </form>
             </div>
           </div>
       )}
+
+      <button onClick={() => setOpenViewSale(!openViewSale)} className={styles.register_sell_button}>
+        {openViewSale ? "Cerrar" : "Registrar Venta"}
+      
+      </button>
+
+      {openViewSale && (<SellView />)}      
     </>
   )
 }

@@ -17,6 +17,7 @@ export default function DailyReport() {
             timeZone: 'America/Lima' 
         });   
         const data = await getReportByDate(today);
+        console.log(data)
         setReport(data);
       } catch (err: any) {
         setError(err.message || "Error al cargar el reporte");
@@ -112,7 +113,7 @@ export default function DailyReport() {
                 {storeEntries.map(([store, val]) => (
                   <tr key={store}>
                     <td>{store}</td>
-                    <td style={{ textAlign: "right" }}>{money(val)}</td>
+                    <td style={{ textAlign: "right" }}>{money(val/100)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -124,15 +125,15 @@ export default function DailyReport() {
           <h2>Resumen</h2>
           <div className={styles.row}>
             <span>Total de ventas: </span>
-            <strong>{money(totalSales)}</strong>
+            <strong>{money(totalSales/100)}</strong>
           </div>
           <div className={styles.row}>
             <span>Total de gastos: </span>
-            <strong>{money(totalExpenses)}</strong>
+            <strong>{money(totalExpenses/100)}</strong>
           </div>
           <div className={styles.row}>
             <span>Utilidades: </span>
-            <strong>{money(utilities)}</strong>
+            <strong>{money(utilities/100)}</strong>
           </div>
           
           <button 

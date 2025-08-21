@@ -1,6 +1,7 @@
 import { Product } from '@/types/products'
 
 export const createProduct = async (product: any) => {
+    product.code = product.code.toUpperCase()
     const res = await fetch(
         `${process.env.NEXT_PUBLIC_FUNCTIONS_URL}/createProduct/`,
         {

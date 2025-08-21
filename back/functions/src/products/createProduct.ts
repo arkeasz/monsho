@@ -23,7 +23,6 @@ interface ProductItem {
 }
 
 const app = express();
-app.use(express.json());
 
 const ORIGIN = process.env.WEB_URL || 'http://localhost:3000'
 
@@ -58,6 +57,9 @@ app.post('/', async (req, res) => {
     ) {
       return res.status(400).json({ error: 'Todos los campos y tallas son obligatorios' });
     }
+    if (code.includes('/')) {
+      return res.status(400).json({ error: 'El campo code no puede contener "/"' });
+    }
 
     for (const s of sizes) {
       if (
@@ -78,12 +80,16 @@ app.post('/', async (req, res) => {
       }
       if (imageUrl.length > 460) return res.status(400).json({ error: 'imageUrl demasiado larga' });
     }
+    const existingQ = await dbP.collection('products').where('code', '==', code).limit(1).get();
+    if (!existingQ.empty) {
+      return res.status(409).json({ error: 'El código ya está en uso' });
+    }
 
     const { FieldValue } = await import('firebase-admin/firestore');
     costPrice = Math.round(costPrice*100)
     sellPrice =  Math.round(sellPrice*100)
-
     const ref = dbP.collection('products').doc();
+
     await ref.set({
       brand,
       code,

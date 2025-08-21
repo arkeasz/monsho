@@ -58,6 +58,7 @@ export default function SellView() {
     }
 
     try {
+      console.log(code)
       const result = await registerSale(payload);
       setSuccessSale(result?.message || "Venta registrada");
       setCode("");
@@ -75,17 +76,16 @@ export default function SellView() {
   return (
     <div className={styles.container}>
       <form onSubmit={handleSubmit} className={styles.sale}>
-        {errorSale && <div className="text-red-600 mb-2">{errorSale}</div>}
-        {successSale && <div className="text-green-600 mb-2">{successSale}</div>}
+        {errorSale && <div>{errorSale}</div>}
+        {successSale && <div>{successSale}</div>}
 
-        <div className="mb-3">
-          <label className="block mb-1">Código de producto</label>
+        <div>
+          <label>Código de producto</label>
           <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             required
-            className="border p-2 rounded w-full"
             placeholder="Ej: ABC123"
           />
         </div>

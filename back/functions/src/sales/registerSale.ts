@@ -15,6 +15,7 @@ app.use(
     origin: ORIGIN,
   })
 )
+
 app.use(express.json());
 
 function getTodayISO(): string {
@@ -44,17 +45,14 @@ app.post('/registerSale', async (req, res) => {
 
     const q = await db
       .collection('products')
-      .where('code', '==', productCode)
+      .where('code', '==', productCode.toUpperCase())
       .limit(1)
       .get();
 
-    if (q.size != Number(size)) {
-      return res.status(404).json({ error: 'Producto no encontrado por talla.' })
+    if (q.empty) {
+      return res.status(404).json({ error: 'Producto no encontrado' })
     }
 
-    if (q.empty) {
-      return res.status(404).json({ error: 'Producto no encontrado por código.' });
-    }
     const prodSnap = q.docs[0];
     console.log('Producto encontrado:', prodSnap);
     const productRef = prodSnap.ref;
@@ -65,6 +63,12 @@ app.post('/registerSale', async (req, res) => {
     const reportRef = db
       .collection('dailyReports')
       .doc(getTodayISO());
+
+    const sise = prodData.sizes.find((s: any) => s.size == Number(size));
+
+    if (!sise) {
+      return res.status(404).json({ error: 'Producto no encontrado por talla.' });
+    }
 
     await db.runTransaction(async tx => {
       const snap = await tx.get(productRef);

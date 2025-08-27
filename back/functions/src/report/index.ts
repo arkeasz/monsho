@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { onRequest } from 'firebase-functions/v1/https';
 import * as admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 if (!admin.apps.length) admin.initializeApp();
 const db = getFirestore();
@@ -40,7 +40,7 @@ function jsonForCSV(obj: unknown): string {
   const s = JSON.stringify(obj ?? []);
   return `"${s.replace(/"/g, '""')}"`; 
 }
-const DAYS_MAX = 15;
+const DAYS_MAX = 30;
 const WINDOW_DAYS = 30;
 
 function limaDayBounds(dateISO: string): { startUTC: Date; endUTC: Date } {
@@ -58,7 +58,6 @@ app.get('/export', async (req, res) => {
     if (Number.isNaN(daysParam) || daysParam < 1 || daysParam > DAYS_MAX) {
       return res.status(400).json({ error: `days debe estar entre 1 y ${DAYS_MAX}` });
     }
-    // validar ventana de 30 días hacia atrás
     const todayISO = getTodayISO();
     const today = new Date(`${todayISO}T12:00:00-05:00`);
     const endCheck = new Date(`${endParam}T12:00:00-05:00`);
@@ -123,20 +122,21 @@ app.get('/export', async (req, res) => {
       const { startUTC, endUTC } = limaDayBounds(dateISO);
       const salesSnap = await db
         .collection('sales')
-        .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startUTC))
-        .where('timestamp', '<=', admin.firestore.Timestamp.fromDate(endUTC))
+        .where('timestamp', '>=', Timestamp.fromDate(startUTC))
+        .where('timestamp', '<=', Timestamp.fromDate(endUTC))
         .get();
 
       const sales = salesSnap.docs.map(d => d.data()) as any[];
       const salesCount = sales.length;
 
-      // 4.2 productos involucrados (por productCode). Volumen pequeño => consultas por código.
       const codes = Array.from(new Set<string>(sales.map(s => s.productCode).filter(Boolean)));
       const productsDetails: any[] = [];
       for (const code of codes) {
         const pq = await db.collection('products').where('code', '==', code).limit(1).get();
+        
         if (!pq.empty) {
           const p = pq.docs[0].data() as any;
+          console.log(p)
           productsDetails.push({
             code,
             name: p.name ?? undefined,
@@ -169,12 +169,15 @@ app.get('/export', async (req, res) => {
         return v;
       });
 
-      // 4.5 construir fila
       const salesSlim = sales.map(s => ({
         productCode: s.productCode,
         storeId: s.storeId,
         quantity: s.quantity,
         subGain: s.subGain,
+        costPrice: s.costPrice,
+        appliedSellPrice: s.appliedSellPrice,
+        originalSellPrice: s.originalSellPrice,
+        size: s.size
       }));
 
       const line = [
@@ -195,12 +198,13 @@ app.get('/export', async (req, res) => {
     // 5) Emitir CSV
     const filename = `export_${reports[0].id}_to_${reports[reports.length - 1].id}.csv`;
     const csv = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+    console.log(csv)
     res.setHeader('Content-Type', 'text/csv; charset=UTF-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(csv);
 
   } catch (err: any) {
-    console.error('Error en /exportCsv:', err);
+    console.error('Error en /export:', err);
     return res.status(500).json({ error: err?.message ?? 'Internal error' });
   }
 });

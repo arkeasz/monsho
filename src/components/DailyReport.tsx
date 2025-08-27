@@ -106,7 +106,7 @@ export default function DailyReport() {
               <thead>
                 <tr>
                   <th>Tienda</th>
-                  <th style={{ textAlign: "right" }}>Ventas</th>
+                  <th style={{ textAlign: "right" }}>Total en ventas</th>
                 </tr>
               </thead>
               <tbody>
@@ -124,11 +124,11 @@ export default function DailyReport() {
         <section className={styles.summary}>
           <h2>Resumen</h2>
           <div className={styles.row}>
-            <span>Total de ventas: </span>
+            <span>Total en ventas: </span>
             <strong>{money(totalSales/100)}</strong>
           </div>
           <div className={styles.row}>
-            <span>Total de gastos: </span>
+            <span>Total en gastos: </span>
             <strong>{money(totalExpenses/100)}</strong>
           </div>
           <div className={styles.row}>
@@ -140,7 +140,7 @@ export default function DailyReport() {
             onClick={handleUpdateUtilities}
             disabled={updating}
           >
-            {updating ? "Guardando..." : "Actualizar Utilidades"}
+            {updating ? "Guardando..." : "Término del día"}
           </button>
         </section>
       </div>

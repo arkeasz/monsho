@@ -1,5 +1,5 @@
 .main {
-    margin-top: 7rem;
+    /* margin-top: 7rem; */
     width: 70%;
 }
 
@@ -9,8 +9,67 @@
     top: 5rem;
     right: 0;
     background-color: #F6FFFD;
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 300;
+    font-optical-sizing: auto;
+    text-transform: uppercase;
+    font-style: normal;
+
+    h2 {
+        font-size: 1rem;
+    }
+
+    h3 {
+        font-size: 1rem;
+    }
 }
 
+
+.header {
+    justify-self: center;
+    --header-height: 4rem;
+    font-size: 1rem;
+    grid-area: header;
+    /* background-color: #f8f9fa; */
+    width: calc(100% - 6rem);
+    /* padding: .5rem 2rem; */
+    /* width: calc(100vw - 1rem); */
+    /* padding: 0.5rem 4rem; */
+    display: flex;
+    justify-content: space-between;
+    gap: -2rem;
+    align-items: center;
+    height: var(--header-height);
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+
+.header h1 {
+    font-size: 1.4rem;
+}
+
+.logout_button {
+    background-color: #E15554;
+    font-family: var(--font-atma), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-style: normal;
+    color: #fff;
+    padding: 1rem 2rem;
+    border: none;
+    cursor: pointer;
+    transition: background .2s cubic-bezier(0.23, 1, 0.320, 1);
+    border-radius: .3rem;
+}
+
+.logout_button:hover {
+    background-color: #d63e3e;
+}
+
+
+/* 
 .header 
     h1 {
         margin: 0;
@@ -46,7 +105,7 @@
         border: none;
         padding: 1rem 1.2rem;
         cursor: pointer;
-    }
+    } */
 
 .list_products {
     --padding: 3rem;
@@ -96,6 +155,11 @@
     display: flex;
     flex-direction: column;
     gap: .5rem;
+    font-family: var(--font-josefin), sans-serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    text-transform: uppercase;
+    font-style: normal;
     /* justify-content: center; */
     
     * {

@@ -128,6 +128,7 @@ app.post('/registerSale', async (req, res) => {
       const storeTotalsField = `storeTotals.${storeId}`;
       tx.set(reportRef, { date: reportRef.id }, { merge: true });
       tx.update(reportRef, {
+        totalSales: FieldValue.increment(subGain),
         [storeTotalsField]: FieldValue.increment(subGain),
       });
 

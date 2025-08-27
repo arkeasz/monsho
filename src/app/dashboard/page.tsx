@@ -619,11 +619,26 @@ export default function Home() {
               <form onSubmit={handleUpdateSubmit} className={styles.modal_edit_form}>
                 <fieldset className={styles.modal_edit_details}>
                   <legend>Detalles</legend>
-                  <input value={editCode} onChange={e => setEditCode(e.target.value)} placeholder="Código" />
-                  <input value={editColor} onChange={e => setEditColor(e.target.value)} placeholder="Color" />
-                  <input step="0.01" value={Number(editCostPrice)} onChange={e => setEditCostPrice(Number(e.target.value))} placeholder="Precio costo" type="number" />
-                  <input step="0.01" value={Number(editSellPrice)} onChange={e => setEditSellPrice(Number(e.target.value))} placeholder="Precio venta" type="number" />
-                  <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Descripción" />
+                  <label>
+                    Código
+                    <input value={editCode} onChange={e => setEditCode(e.target.value)} placeholder="Código" />
+                  </label>
+                  <label>
+                    Color
+                    <input value={editColor} onChange={e => setEditColor(e.target.value)} placeholder="Color" />
+                  </label>
+                  <label>
+                    Precio de costo
+                    <input step="0.01" value={Number(editCostPrice)} onChange={e => setEditCostPrice(Number(e.target.value))} placeholder="Precio costo" type="number" />
+                  </label>
+                  <label>
+                    Precio de Venta
+                    <input step="0.01" value={Number(editSellPrice)} onChange={e => setEditSellPrice(Number(e.target.value))} placeholder="Precio venta" type="number" />
+                  </label>
+                  <label>
+                    Descripción
+                    <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Descripción" />
+                  </label>
                 </fieldset>
                 <fieldset className={styles.modal_edit_sizes }>
                   <legend><span>Tallas</span> <button type="button" onClick={() => setEditSizes(prev => [...prev, { size: '', quantity: 0 }])}>+</button>

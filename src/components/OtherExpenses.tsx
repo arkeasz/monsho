@@ -31,7 +31,7 @@ export default function OtherExpensesTable() {
     const [loading, setLoading] = useState(false);
     const [newExpense, setNewExpense] = useState({ name: '', costDaily: '' });
     const [editId, setEditId] = useState<string | null>(null);
-    const [editData, setEditData] = useState<{ name: string; costDaily: string }>({ name: '', costDaily: '' });
+    const [editData, setEditData] = useState<{ name: string; costDaily: number }>({ name: '', costDaily: 0 });
     const [error, setError] = useState<string | null>(null);
     const [dateISO] = useState(getTodayISO());
   useEffect(() => {
@@ -77,18 +77,18 @@ export default function OtherExpensesTable() {
 
   function startEdit(expense: OtherExpense) {
     setEditId(expense.id);
-    setEditData({ name: expense.name, costDaily: expense.costDaily.toString() });
+    setEditData({ name: expense.name, costDaily: expense.costDaily });
     setError(null);
   }
 
   async function saveEdit() {
     if (!editId) return;
 
-    if (!editData.name.trim() || !editData.costDaily.trim()) {
+    if (!editData.name.trim() || !editData.costDaily) {
       setError('Completa nombre y costo');
       return;
     }
-    const cost = Number(editData.costDaily);
+    const cost = Number(editData.costDaily*100);
     if (isNaN(cost) || cost < 0) {
       setError('Costo inválido');
       return;
@@ -97,7 +97,7 @@ export default function OtherExpensesTable() {
     setLoading(true);
     setError(null);
     try {
-      await updateOtherExpense(editId, { ...editData, costDaily: cost, dateISO });
+      await updateOtherExpense(editId, { ...editData, costDaily: cost*100, dateISO });
       setExpenses(prev =>
         prev.map(e => (e.id === editId ? { ...e, name: editData.name, costDaily: cost } : e))
       );
@@ -157,11 +157,11 @@ export default function OtherExpensesTable() {
                   <input
                     type="number"
                     value={editData.costDaily}
-                    onChange={e => setEditData(prev => ({ ...prev, costDaily: e.target.value }))}
+                    onChange={e => setEditData((prev: any) => ({ ...prev, costDaily: e.target.value }))}
                     step="0.01"
                   />
                 ) : (
-                  `S/.${exp.costDaily.toFixed(2)}`
+                  `S/.${exp.costDaily}`
                 )}
               </td>
               <td className={styles.button_actions}>

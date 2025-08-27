@@ -411,6 +411,11 @@
     gap: .5rem;
 }
 
+.modal_edit_details label {
+    display: flex;
+    flex-direction: column;
+}
+
 .modal_edit_sizes {
     display: flex;
     flex-direction: column;

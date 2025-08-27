@@ -33,6 +33,15 @@ export default function Home() {
     loadReports();
   }, []);
 
+  const money = (n: unknown) => {
+    const value = typeof n === "number" && Number.isFinite(n) ? n : 0;
+    return new Intl.NumberFormat("es-PE", {
+      style: "currency",
+      currency: "PEN",
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
   if (loading) return <p className={styles.loading}>Cargando reportes...</p>;
   if (error) return <p className={styles.error}>Error: {error}</p>;
   if (!reports || reports.items.length === 0)
@@ -69,9 +78,9 @@ export default function Home() {
               {reports.map((r) => (
                 <tr key={r.id}>
                   <td>{r.date}</td>
-                  <td>{r.totalSales}</td>
-                  <td>{r.totalExpenses}</td>
-                  <td>{r.utilities}</td>
+                  <td>{money(r.totalSales/100)}</td>
+                  <td>{money(r.totalExpenses/100)}</td>
+                  <td>{money(r.utilities/100)}</td>
                 </tr>
               ))}
             </tbody>

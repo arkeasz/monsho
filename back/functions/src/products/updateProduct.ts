@@ -12,7 +12,6 @@ interface UpdateProductRequest {
   code?: string;
   color?: string;
   costPrice?: number;
-  description?: string;
   sellPrice?: number;
   sizes?: { size: string; quantity: number }[] | null; // null -> borrar/reemplazar?
   imageUrl?: string | null; 
@@ -69,12 +68,6 @@ app.put('/', async (req, res) => {
       const sellPrice = Math.round(Number(body.sellPrice) * 100);
       if (!Number.isFinite(sellPrice) || sellPrice < 0) return res.status(400).json({ error: 'sellPrice inválido' });
       updates.sellPrice = sellPrice;
-    }
-
-    if (body.description !== undefined) {
-      const description = String(body.description ?? '').trim().slice(0, 2000);
-      if (!description) return res.status(400).json({ error: 'description no puede estar vacío' });
-      updates.description = description;
     }
 
     if (body.sizes !== undefined) {

@@ -36,11 +36,10 @@ app.use(express.json());
 app.post('/', async (req, res) => {
   try {
     let {
-      brand = '',
+      brand,
       code,
       color,
       costPrice,
-      description,
       sellPrice,
       sizes,
       imageUrl
@@ -50,7 +49,6 @@ app.post('/', async (req, res) => {
       !code ||
       !color ||
       costPrice == null ||
-      !description ||
       sellPrice == null ||
       !Array.isArray(sizes) ||
       sizes.length === 0
@@ -91,11 +89,10 @@ app.post('/', async (req, res) => {
     const ref = dbP.collection('products').doc();
 
     await ref.set({
-      brand,
-      code,
-      color,
+      brand: brand.trim(),
+      code: code.trim(),
+      color: color.trim(),
       costPrice,
-      description,
       sellPrice,
       sizes,
       imageUrl: imageUrl ?? null,

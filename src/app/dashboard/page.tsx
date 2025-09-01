@@ -33,7 +33,7 @@ export default function Home() {
   const [editCode, setEditCode] = useState('');
   const [editColor, setEditColor] = useState('');
   const [editCostPrice, setEditCostPrice] = useState(0);
-  const [editDescription, setEditDescription] = useState('');
+  const [editDescription, setEditDescription] = useState('descripcion');
   const [editSellPrice, setEditSellPrice] = useState(0);
   const [editSizes, setEditSizes] = useState<{ size: string; quantity: number }[]>([]);
   const [editImageKey, setEditImageKey] = useState<string | null>(null);
@@ -190,7 +190,7 @@ export default function Home() {
   const [code, setCode] = useState('')
   const [color, setColor] = useState('')
   const [costPrice, setCostPrice] = useState<any>('')
-  const [description, setDescription] = useState('')
+  const [description, setDescription] = useState('descripcion')
   const [sellPrice, setSellPrice] = useState<any>('')
   const [openViewSale, setOpenViewSale] = useState(false)
 
@@ -277,16 +277,16 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      console.log("AAA")
       setLoading(true)
       setError(null)
 
       if (!code.trim()) throw new Error("El código es obligatorio.");
       if (!color.trim()) throw new Error("El color es obligatorio.");
-      if (!description.trim()) throw new Error("La descripción es obligatoria.");
       if (!Array.isArray(sizes) || sizes.length === 0) throw new Error("Debes agregar al menos una talla.");
 
       const payload = {
-        brand: '',
+        brand: brand.trim(),
         code: code.trim(),
         color: color.trim(),
         costPrice: Number(costPrice),
@@ -305,9 +305,9 @@ export default function Home() {
       setBrand(''); 
       setCode(''); 
       setColor(''); 
-      setCostPrice(0); 
+      setCostPrice(''); 
       setDescription(''); 
-      setSellPrice(0);
+      setSellPrice('');
       setSizes([]); setImageKey(null);  
     } catch (err: any) {
       setError(err.message)
@@ -559,12 +559,21 @@ export default function Home() {
                       onPaste={preventPasteNegative}  
                     />
                   </div>
-                  <textarea
+                  <div className={styles.input_wrapped}>
+                    <input
+                      placeholder="Proveedor"
+                      min="0"
+                      value={brand}
+                      onChange={e => setBrand(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {/* <textarea
                     placeholder="Descripción"
                     value={description}
                     onChange={e => setDescription(e.target.value ?? '')}
                     required
-                  />
+                  /> */}
                 </fieldset>
                 <fieldset className={styles.modal_form_sizes}>
                   <legend>Añadir Talla 
@@ -636,8 +645,8 @@ export default function Home() {
                     <input step="0.01" value={Number(editSellPrice)} onChange={e => setEditSellPrice(Number(e.target.value))} placeholder="Precio venta" type="number" />
                   </label>
                   <label>
-                    Descripción
-                    <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Descripción" />
+                    Proveedor
+                    <input value={editBrand} onChange={e => setEditBrand(e.target.value)} placeholder="Proveedor" />
                   </label>
                 </fieldset>
                 <fieldset className={styles.modal_edit_sizes }>
@@ -661,7 +670,7 @@ export default function Home() {
                 </fieldset>
                 <fieldset className={styles.modal_edit_options}>
                   <legend>Options</legend>
-                  <button type="submit" disabled={editLoading}>{editLoading ? 'Guardar cambios' : 'Guardando'}</button>
+                  <button type="submit" disabled={editLoading}>{editLoading ? 'Guardando' : 'Guardar Cambios'}</button>
                   <button type="button" onClick={() => { closeEditModal(); setShowModal(false); }}>Cancelar</button>
                 </fieldset>
               </form>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Josefin_Sans, Atma } from "next/font/google";
 import "./globals.css";
+import Providers from '@/app/providers';
 
 const josefin = Josefin_Sans({
   subsets: ['latin'],
@@ -31,7 +32,9 @@ export default function RootLayout({
       <title>Monitos Shoes</title>
       <body className={
         `${josefin.variable} ${atma.variable}`}>
-        {children}
+          <Providers>
+            {children}
+          </Providers>
       </body>
     </html>
   );

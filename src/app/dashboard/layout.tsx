@@ -4,6 +4,7 @@ import "@/app/globals.css";
 import styles from '@styles/dashboard.module.css';
 import { Nav } from "@/components/Nav";
 import { logoutAction } from "@/api/action";
+import Providers from '@/app/providers';
 
 const josefin = Josefin_Sans({
   subsets: ['latin'],
@@ -42,7 +43,9 @@ export default function DashboardLayout({
             </header>
             <Nav />
             <main className={styles.main}>
-                {children}
+                <Providers>
+                  {children}
+                </Providers>
             </main>
     </div>
   );

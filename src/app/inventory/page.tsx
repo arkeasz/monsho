@@ -1,15 +1,13 @@
 "use client";
 
-import useSWR from "swr";
-import { getProducts } from "@/api/products";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/inventory.module.css";
 import Image from "next/image";
 import "@/app/globals.css";
-import React, { useEffect, useMemo, useState } from "react";
 import { logoutAction } from "@/api/action";
+import { useProductsRQ } from "@/hooks/useProductsRQ";
+import { useQueryClient } from '@tanstack/react-query'
 
-type SizeInfo = any;
 type Product = any;
 
 const money = (n: unknown) => {
@@ -22,72 +20,78 @@ const money = (n: unknown) => {
 };
 
 export default function Home() {
-  const router = useRouter();
-
-  const { data, error, isLoading } = useSWR<any[]>("listProducts", () => getProducts(), {
-    revalidateOnFocus: false,
-    revalidateIfStale: false,
-    revalidateOnReconnect: false,
-  });
-
-  const products = data ?? [];
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/");
-  };
-
-  // selected product para el aside
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [ladate, setLadate] = useState('')
-  useEffect(() => {
-    if (selectedProduct != null) {
-      const ts = { sec: selectedProduct.updatedAt.valueOf()._seconds, nan: selectedProduct.updatedAt.valueOf()._nanoseconds }
-      const milliseconds = ts.sec*1000 + ts.nan / 1e6;
-      const date = new Date(milliseconds)
-      setLadate(date.toLocaleDateString('en-GB'))
-    }
-  }, [selectedProduct])
-
-  // filtros controlados (cliente)
+  // filtros UI
   const [filterSearch, setFilterSearch] = useState<string>("");
   const [filterBrand, setFilterBrand] = useState<string>("");
   const [filterColor, setFilterColor] = useState<string>("");
   const [filterSize, setFilterSize] = useState<string>("");
-  const [filterMinPrice, setFilterMinPrice] = useState<string>(""); // en unidades (ej. 12.50)
-  const [filterMaxPrice, setFilterMaxPrice] = useState<string>(""); // en unidades
+  const [filterMinPrice, setFilterMinPrice] = useState<string>("");
+  const [filterMaxPrice, setFilterMaxPrice] = useState<string>("");
   const [filterInStockOnly, setFilterInStockOnly] = useState<boolean>(false);
 
-  // helper: formatea centavos -> string en unidades con 2 decimales
-  const formatPrice = (cents: number | null | undefined) => {
-    const n = Number(cents ?? 0) / 100;
-    // usa la locale del usuario; se puede forzar 'es-PE' si quieres
-    return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+  // Debounce simple para filtros que se envían al servidor
+  const [serverFilters, setServerFilters] = useState({
+    brand: "",
+    color: "",
+    size: "",
+    minPrice: "",
+    maxPrice: "",
+  });
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setServerFilters({
+        brand: filterBrand.trim(),
+        color: filterColor.trim(),
+        size: filterSize.trim(),
+        minPrice: filterMinPrice.trim(),
+        maxPrice: filterMaxPrice.trim(),
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [filterBrand, filterColor, filterSize, filterMinPrice, filterMaxPrice]);
 
-  // useMemo: filtrado robusto (adaptado para centavos)
-  const filteredProducts = useMemo(() => {
+  // Hook paginado (usa el fetchPage que compartiste)
+  const {
+    data,
+    error,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useProductsRQ({
+    brand: serverFilters.brand || undefined,
+    color: serverFilters.color || undefined,
+    size: serverFilters.size || undefined,
+    minPrice: serverFilters.minPrice || undefined,
+    maxPrice: serverFilters.maxPrice || undefined,
+  });
+
+  // productos desde las páginas del hook (asumimos key `products`)
+  const productsFromServer: Product[] = useMemo(() => {
+    if (!data?.pages) return [];
+    // tu backend devuelve `products` en cada página (según implementaciones previas)
+    return data.pages.flatMap((p: any) => p.products || []);
+  }, [data]);
+
+  // Aplicar filtros cliente-side restantes: filterSearch y filterInStockOnly
+  const visibleProducts = useMemo(() => {
     const s = (filterSearch ?? "").toString().trim().toLowerCase();
-    const b = (filterBrand ?? "").toString().trim().toLowerCase();
-    const c = (filterColor ?? "").toString().trim().toLowerCase();
-    const sz = (filterSize ?? "").toString().trim().toLowerCase();
-
-    const parseMaybeNumber = (raw: string): number | null => {
-      const t = (raw ?? "").toString().trim();
+    const min = (() => {
+      const t = (filterMinPrice ?? "").toString().trim();
       if (t === "") return null;
-      const normalized = t.replace(",", ".");
-      const n = Number(normalized);
+      const n = Number(t.replace(",", "."));
       return Number.isFinite(n) ? n : null;
-    };
+    })();
+    const max = (() => {
+      const t = (filterMaxPrice ?? "").toString().trim();
+      if (t === "") return null;
+      const n = Number(t.replace(",", "."));
+      return Number.isFinite(n) ? n : null;
+    })();
 
-    // min/max en unidades (ej. 12.5) -> convertimos a centavos para comparar con la API
-    const min = parseMaybeNumber(filterMinPrice);
-    const max = parseMaybeNumber(filterMaxPrice);
-    const minCents = min !== null ? Math.round(min * 100) : null;
-    const maxCents = max !== null ? Math.round(max * 100) : null;
-
-    return (products || []).filter((p: any) => {
-      // search por code/brand/description
+    return productsFromServer.filter((p: any) => {
+      // search por code/brand/description (cliente-side)
       if (s) {
         const code = (p.code ?? "").toString().toLowerCase();
         const brand = (p.brand ?? "").toString().toLowerCase();
@@ -95,31 +99,18 @@ export default function Home() {
         if (!code.includes(s) && !brand.includes(s) && !desc.includes(s)) return false;
       }
 
-      // brand
-      if (b) {
-        const brand = (p.brand ?? "").toString().toLowerCase();
-        if (!brand.includes(b)) return false;
+      // precio (los valores del backend vienen en centavos)
+      const price = Number(p.sellPrice ?? p.costPrice ?? 0) / 100;
+      if (min !== null && price < min) return false;
+      if (max !== null && price > max) return false;
+
+      // talla (cliente-side, por si el backend no tiene availableSizes)
+      if (filterSize.trim()) {
+        const sizesLower = (p.sizes || []).map((item: any) => (item.size ?? "").toString().toLowerCase());
+        if (!sizesLower.some((sv: string) => sv.includes(filterSize.trim().toLowerCase()))) return false;
       }
 
-      // color
-      if (c) {
-        const color = (p.color ?? "").toString().toLowerCase();
-        if (!color.includes(c)) return false;
-      }
-
-      // precio: la API viene en centavos, usamos directamente sellPrice/costPrice
-      const priceCents = Number(p.sellPrice ?? p.costPrice ?? 0);
-      if (minCents !== null && priceCents < minCents) return false;
-      if (maxCents !== null && priceCents > maxCents) return false;
-
-      if (sz) {
-        const sizesLower = (p.sizes || []).map((item: any) =>
-          (item.size ?? "").toString().toLowerCase()
-        );
-        if (!sizesLower.some((sv: string) => sv.includes(sz))) return false;
-      }
-
-      // solo en stock: sumar cantidades
+      // solo en stock
       if (filterInStockOnly) {
         const totalQty = (p.sizes || []).reduce((acc: number, s: any) => acc + Number(s.quantity || 0), 0);
         if (totalQty <= 0) return false;
@@ -127,44 +118,61 @@ export default function Home() {
 
       return true;
     });
-  }, [
-    products,
-    filterSearch,
-    filterBrand,
-    filterColor,
-    filterSize,
-    filterMinPrice,
-    filterMaxPrice,
-    filterInStockOnly,
-  ]);
+  }, [productsFromServer, filterSearch, filterSize, filterMinPrice, filterMaxPrice, filterInStockOnly]);
 
-  
-    const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
-    const API_KEY = process.env.NEXT_PUBLIC_IMAGES_API_KEY ?? '';
-  
-    async function fetchSignedUrlForKey(key: string) {
-      const headers: Record<string,string> = {};
-      if (API_KEY) headers['x-api-key'] = API_KEY;
-      const res = await fetch(`/api/images?key=${encodeURIComponent(key)}`, { headers });
-      if (!res.ok) {
-        const t = await res.text().catch(()=>res.statusText);
-        throw new Error(t || 'failed to get signed url');
+  // selected product for aside
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [ladate, setLadate] = useState("");
+  useEffect(() => {
+    if (selectedProduct != null) {
+      // defensive: handle different timestamp shapes
+      try {
+        // si es Firestore Timestamp
+        if (selectedProduct.updatedAt?.toDate) {
+          const date = selectedProduct.updatedAt.toDate();
+          setLadate(date.toLocaleDateString("en-GB"));
+        } else if (selectedProduct.updatedAt?.seconds) {
+          const msec = selectedProduct.updatedAt.seconds * 1000 + (selectedProduct.updatedAt.nanoseconds || 0) / 1e6;
+          setLadate(new Date(msec).toLocaleDateString("en-GB"));
+        } else if (typeof selectedProduct.updatedAt === "number") {
+          setLadate(new Date(selectedProduct.updatedAt).toLocaleDateString("en-GB"));
+        } else {
+          // fallback
+          const d = new Date(selectedProduct.updatedAt);
+          if (!Number.isNaN(d.valueOf())) setLadate(d.toLocaleDateString("en-GB"));
+        }
+      } catch (e) {
+        setLadate("");
       }
-      const data = await res.json();
-      return data.signedUrl as string;
     }
-  
-    useEffect(() => {
-      if (products.length === 0) return;
-  
-      let mounted = true;
-      const map: Record<string,string> = {};
-  
-      ;(async () => {
-        await Promise.all(products.map(async (p) => {
+  }, [selectedProduct]);
+
+  // signed urls caching
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const API_KEY = process.env.NEXT_PUBLIC_IMAGES_API_KEY ?? "";
+
+  async function fetchSignedUrlForKey(key: string) {
+    const headers: Record<string, string> = {};
+    if (API_KEY) headers["x-api-key"] = API_KEY;
+    const res = await fetch(`/api/images?key=${encodeURIComponent(key)}`, { headers });
+    if (!res.ok) {
+      const t = await res.text().catch(() => res.statusText);
+      throw new Error(t || "failed to get signed url");
+    }
+    const data = await res.json();
+    return data.signedUrl as string;
+  }
+
+  useEffect(() => {
+    if (visibleProducts.length === 0) return;
+    let mounted = true;
+    const map: Record<string, string> = {};
+
+    (async () => {
+      await Promise.all(
+        visibleProducts.map(async (p) => {
           try {
             if (!p.imageUrl) return;
-            // evita pedir si ya lo tenemos
             if (signedUrls[p.id]) {
               map[p.id] = signedUrls[p.id];
               return;
@@ -173,22 +181,31 @@ export default function Home() {
             if (!mounted) return;
             map[p.id] = signed;
           } catch (e) {
-            // no queremos romper la UI por un error de una sola imagen
-            console.warn('no signed url for', p.id, e);
+            console.warn("no signed url for", p.id, e);
           }
-        }));
-  
-        if (!mounted) return;
-        setSignedUrls(prev => ({ ...prev, ...map }));
-      })();
-  
-      return () => { mounted = false; };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [products]); 
-  
+        })
+      );
 
-  if (isLoading) return <p>Cargando inventario…</p>;
-  if (error) return <p>Error al cargar: {(error as Error).message}</p>;
+      if (!mounted) return;
+      setSignedUrls((prev) => ({ ...prev, ...map }));
+    })();
+
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleProducts]);
+
+  // logout (tu implementación)
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    // si usas next/navigation push, importa y úsalo
+    // router.push('/')
+    // aquí solo recargamos o redirigimos:
+    window.location.href = "/";
+  };
+
+  // if (error) return <p>Error al cargar: {(error as Error).message}</p>;
 
   return (
     <>
@@ -203,83 +220,86 @@ export default function Home() {
 
       <main className={styles.main}>
         <div className={styles.filters_container}>
-        <div className={styles.filters_form} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input
-            type="text"
-            placeholder="Buscar por código, marca o descripción"
-            value={filterSearch}
-            onChange={(e) => setFilterSearch(e.target.value)}
-            className={styles.filter_input}
-          />
-          <input
-            type="text"
-            placeholder="Color"
-            value={filterColor}
-            onChange={(e) => setFilterColor(e.target.value)}
-            className={styles.filter_input}
-          />
-          <input
-            type="text"
-            placeholder="Talla"
-            value={filterSize}
-            onChange={(e) => setFilterSize(e.target.value)}
-            className={styles.filter_input}
-          />
-          <input
-            type="text"
-            placeholder="Precio min (S/. — ej. 12.50)"
-            value={filterMinPrice}
-            onChange={(e) => setFilterMinPrice(e.target.value)}
-            className={styles.filter_input}
-          />
-          <input
-            type="text"
-            placeholder="Precio max (S/. — ej. 99.99)"
-            value={filterMaxPrice}
-            onChange={(e) => setFilterMaxPrice(e.target.value)}
-            className={styles.filter_input}
-          />
-          <input
-            type="text"
-            placeholder="Proveedor"
-            value={filterBrand}
-            onChange={(e) => setFilterBrand(e.target.value)}
-            className={styles.filter_input}
-          />
-          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div className={styles.filters_form} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <input
-              type="checkbox"
-              checked={filterInStockOnly}
-              onChange={(e) => setFilterInStockOnly(e.target.checked)}
+              type="text"
+              placeholder="Buscar por código, marca o descripción"
+              value={filterSearch}
+              onChange={(e) => setFilterSearch(e.target.value)}
+              className={styles.filter_input}
             />
-            Sólo en stock
-          </label>
+            <input
+              type="text"
+              placeholder="Proveedor"
+              value={filterBrand}
+              onChange={(e) => setFilterBrand(e.target.value)}
+              className={styles.filter_input}
+            />
+            <input
+              type="text"
+              placeholder="Color"
+              value={filterColor}
+              onChange={(e) => setFilterColor(e.target.value)}
+              className={styles.filter_input}
+            />
+            <input
+              type="text"
+              placeholder="Talla"
+              value={filterSize}
+              onChange={(e) => setFilterSize(e.target.value)}
+              className={styles.filter_input}
+            />
+            <input
+              type="text"
+              placeholder="Precio min (S/. — ej. 12.50)"
+              value={filterMinPrice}
+              onChange={(e) => setFilterMinPrice(e.target.value)}
+              className={styles.filter_input}
+            />
+            <input
+              type="text"
+              placeholder="Precio max (S/. — ej. 99.99)"
+              value={filterMaxPrice}
+              onChange={(e) => setFilterMaxPrice(e.target.value)}
+              className={styles.filter_input}
+            />
+            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={filterInStockOnly}
+                onChange={(e) => setFilterInStockOnly(e.target.checked)}
+              />
+              Sólo en stock
+            </label>
 
-          <div style={{ display: "inline-flex", gap: 8 }}>
-            <button
-              type="button"
-              className={styles.filter_button}
-              onClick={() => {
-                // reset filtros
-                setFilterSearch("");
-                setFilterBrand("");
-                setFilterColor("");
-                setFilterSize("");
-                setFilterMinPrice("");
-                setFilterMaxPrice("");
-                setFilterInStockOnly(false);
-                setSelectedProduct(null);
-              }}
-            >
-              Limpiar
-            </button>
+            <div style={{ display: "inline-flex", gap: 8 }}>
+              <button
+                type="button"
+                className={styles.filter_button}
+                onClick={() => {
+                  // reset filtros
+                  setFilterSearch("");
+                  setFilterBrand("");
+                  setFilterColor("");
+                  setFilterSize("");
+                  setFilterMinPrice("");
+                  setFilterMaxPrice("");
+                  setFilterInStockOnly(false);
+                  setSelectedProduct(null);
+                }}
+              >
+                Limpiar
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-        {filteredProducts && filteredProducts.length === 0 && <p>No hay productos que coincidan.</p>}
+        {visibleProducts && visibleProducts.length === 0 && <p>No hay productos que coincidan.</p>}
+
         <ul className={styles.list_products}>
-          {filteredProducts?.map((product: any) => (
+          {isLoading && <p>Cargando inventario…</p>}
+
+          {visibleProducts?.map((product: any) => (
             <li key={product.id} onClick={() => setSelectedProduct(product)}>
               <h2>{product.code}</h2>
               <div className={styles.product_image}>
@@ -289,12 +309,11 @@ export default function Home() {
                     alt={product.code}
                     width={80}
                     height={100}
-                    style={{ objectFit: 'cover', width: 80, height: 100 }}
+                    style={{ objectFit: "cover", width: 80, height: 100 }}
                   />
                 ) : (
-                  <Image src="/preview.png" alt="preview" width={80} height={100}/>
+                  <Image src="/preview.png" alt="preview" width={80} height={100} />
                 )}
-                {/* <Image src="/preview.png" alt="preview" width={80} height={100} /> */}
               </div>
               <div className={styles.product_details}>
                 <div>
@@ -317,17 +336,8 @@ export default function Home() {
 
                 <div>
                   <h3>Cantidad</h3>
-                  <p>
-                    {product.sizes
-                      ? product.sizes.reduce((sum: number, s: any) => sum + Number(s.quantity), 0)
-                      : 0}
-                  </p>
+                  <p>{product.sizes ? product.sizes.reduce((sum: number, s: any) => sum + Number(s.quantity), 0) : 0}</p>
                 </div>
-
-                {/* <div>
-                  <h3>Precio</h3>
-                  <p>S/.{formatPrice(product.sellPrice ?? product.costPrice ?? 0)}</p>
-                </div> */}
 
                 <button
                   className={styles.details_button}
@@ -342,6 +352,16 @@ export default function Home() {
             </li>
           ))}
         </ul>
+
+        <div style={{ textAlign: "center", margin: 20 }}>
+          {hasNextPage ? (
+            <button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+              {isFetchingNextPage ? "Cargando…" : "Cargar más"}
+            </button>
+          ) : (
+            <p>{isLoading ? "" : "No hay más productos"}</p>
+          )}
+        </div>
       </main>
 
       <aside className={styles.aside}>
@@ -350,11 +370,12 @@ export default function Home() {
             <h2>Detalles de: {selectedProduct.code}</h2>
             <p>
               <strong>Proveedor:</strong> {selectedProduct.brand}
-            </p>            <p>
+            </p>
+            <p>
               <strong>Color:</strong> {selectedProduct.color}
             </p>
             <p>
-              <strong>Precio de venta:</strong> {money(selectedProduct.sellPrice/100)}
+              <strong>Precio de venta:</strong> {money((selectedProduct.sellPrice ?? 0) / 100)}
             </p>
             <div>
               <h3>Tallas y cantidades:</h3>
@@ -366,11 +387,7 @@ export default function Home() {
                 ))}
               </ul>
             </div>
-            {selectedProduct.updatedAt && (
-              <p className="text-sm text-gray-500">
-                Última actualización: {ladate}
-              </p>
-            )}
+            {selectedProduct.updatedAt && <p className="text-sm text-gray-500">Última actualización: {ladate}</p>}
           </>
         ) : (
           <>

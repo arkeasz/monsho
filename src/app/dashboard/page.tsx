@@ -13,7 +13,6 @@ import { useQueryClient } from '@tanstack/react-query'
 export default function Home() {
   const queryClient = useQueryClient()
   const FUNCTIONS_URL = process.env.NEXT_PUBLIC_FUNCTIONS_URL || ''
-  // filtros UI
   const [filterSearch, setFilterSearch] = useState('')
   const [filterColor, setFilterColor] = useState('')
   const [filterSize, setFilterSize] = useState('')
@@ -21,7 +20,6 @@ export default function Home() {
   const [filterMaxPrice, setFilterMaxPrice] = useState('')
   const [filterInStockOnly, setFilterInStockOnly] = useState(false)
 
-  // debounce de filtros para no spamear la API
   const [filtersDebounced, setFiltersDebounced] = useState({
     color: '',
     size: '',
@@ -50,15 +48,23 @@ export default function Home() {
 
   const productsFromServer: Product[] = useMemo(() => {
     if (!data?.pages) return []
-    return data.pages.flatMap((p: any) => p.products || [])
+
+    const all = data.pages.flatMap((p: any) => p.products || [])
+    const seen = new Set<string>()
+    const uniq: Product[] = []
+    for (const p of all) {
+      if (!p || !p.id) continue
+      if (seen.has(p.id)) continue
+      seen.add(p.id)
+      uniq.push(p)
+    }
+    return uniq
   }, [data])
 
-  // estado local para UI que antes usaba `products`
-  //  - mantenemos removedIds para borrado optimista
+
   const [removedIds, setRemovedIds] = useState<Record<string, boolean>>({})
   const visibleProducts = useMemo(() => productsFromServer.filter(p => !removedIds[p.id]), [productsFromServer, removedIds])
 
-  // estado UI y formularios locales (mantenemos tu lógica)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)

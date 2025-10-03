@@ -3,7 +3,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "serve": "npm run build && firebase emulators:start --only functions, firebase",
+    "serve": "npm run build && firebase emulators:start --only functions,firstore",
     "shell": "npm run build && firebase functions:shell",
     "emulators": "npm run build && firebase emulators:start",
     "emulators:stop": "firebase emulators:stop",

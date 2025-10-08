@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useEffect, useState } from "react";
 import styles from "@styles/sells.module.css";
 import { registerSale } from "@/api/sales";
@@ -12,6 +12,10 @@ export default function SellView() {
   const [loadingSale, setLoadingSale] = useState(false);
   const [errorSale, setErrorSale] = useState<string | null>(null);
   const [successSale, setSuccessSale] = useState<string | null>(null);
+
+  // PAYMENT: opciones y estado
+  const PAYMENT_OPTIONS = ['visa', 'yape', 'transferencia', 'efectivo'];
+  const [paymentMethod, setPaymentMethod] = useState<string>(PAYMENT_OPTIONS[0]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,11 +44,19 @@ export default function SellView() {
       return;
     }
 
+    // validar paymentMethod
+    if (!paymentMethod || typeof paymentMethod !== 'string' || !paymentMethod.trim()) {
+      setErrorSale('Selecciona un método de pago.');
+      setLoadingSale(false);
+      return;
+    }
+
     const payload: any = {
       productCode: code.trim(),
       storeId,
       quantity,
       size: String(size).trim(),
+      paymentMethod: String(paymentMethod).trim(), // <-- agregado aquí
     };
 
     if (appliedPrice !== 0) {
@@ -58,7 +70,7 @@ export default function SellView() {
     }
 
     try {
-      console.log(code)
+      console.log('registerSale payload:', payload);
       const result = await registerSale(payload);
       setSuccessSale(result?.message || "Venta registrada");
       setCode("");
@@ -76,8 +88,8 @@ export default function SellView() {
   return (
     <div className={styles.container}>
       <form onSubmit={handleSubmit} className={styles.sale}>
-        {errorSale && <div>{errorSale}</div>}
-        {successSale && <div>{successSale}</div>}
+        {errorSale && <div style={{ color: 'red' }}>{errorSale}</div>}
+        {successSale && <div style={{ color: 'green' }}>{successSale}</div>}
 
         <div>
           <label>Código de producto</label>
@@ -129,8 +141,23 @@ export default function SellView() {
         </div>
 
         <div>
+          <label>Método de pago</label>
+          <select
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+            className="border p-2 rounded w-full mb-3"
+            required
+          >
+            {PAYMENT_OPTIONS.map(opt => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
           <label>Precio aplicado (opcional)</label>
-          
           <input
             type="number"
             step="0.01"
@@ -152,4 +179,3 @@ export default function SellView() {
     </div>
   );
 }
-

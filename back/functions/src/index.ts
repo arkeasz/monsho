@@ -37,6 +37,7 @@ export { deleteProduct } from './products/deleteProduct'
 
 // section - sales
 export { registerSale } from './sales/registerSale'
+export { listSales } from './sales/listSales'
 
 // section - stores
 export { stores } from './stores/index'

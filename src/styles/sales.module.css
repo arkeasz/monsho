@@ -1,0 +1,19 @@
+.sales {
+    display: flex;
+    flex-direction: column;
+}
+
+.table {
+    width: '100%';
+    border-collapse: 'collapse';
+    margin-top: 16;
+}
+
+.table tr {
+    background-color: #ddd;
+    border: .1px solid #111;
+    height: 2.5rem;
+}
+.table td {
+    text-align: center;
+}

@@ -12,6 +12,7 @@ const links: NavLinkProps[] = [
   { href: '/dashboard', title: 'CATÁLOGO' },
   { href: '/dashboard/users', title: 'USUARIOS' },
   { href: '/dashboard/report', title: 'REPORTE' },
+  { href: '/dashboard/sales', title: 'VENTAS' },
   { href: '/dashboard/history', title: 'HISTORIAL' },
 ];
 

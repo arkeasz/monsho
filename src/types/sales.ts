@@ -3,6 +3,7 @@ export interface RegisterSalePayload {
   storeId: number;
   quantity: number;
   size: string;
+  paymentMethod: string;
 }
 
 export interface RegisterSaleResponse {

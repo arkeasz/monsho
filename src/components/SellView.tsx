@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styles from "@styles/sells.module.css";
 import { registerSale } from "@/api/sales";
 
@@ -17,6 +17,83 @@ export default function SellView() {
   const PAYMENT_OPTIONS = ['visa', 'yape', 'transferencia', 'efectivo'];
   const [paymentMethod, setPaymentMethod] = useState<string>(PAYMENT_OPTIONS[0]);
 
+  // --- draggable ---
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const draggingRef = useRef(false);
+  const pointerIdRef = useRef<number | null>(null);
+  const offsetRef = useRef({ x: 0, y: 0 });
+  const [pos, setPos] = useState({ x: 20, y: 60 }); // posición inicial
+
+  // evita iniciar arrastre cuando el target es un control interactivo
+  const isInteractiveTarget = (el: EventTarget | null) => {
+    if (!(el instanceof Element)) return false;
+    const tag = el.tagName.toLowerCase();
+    if (['input', 'textarea', 'select', 'button', 'a', 'label'].includes(tag)) return true;
+    if (el.getAttribute && el.getAttribute('contenteditable') === 'true') return true;
+    return false;
+  };
+
+  const startDrag = (clientX: number, clientY: number) => {
+    draggingRef.current = true;
+    offsetRef.current = { x: clientX - pos.x, y: clientY - pos.y };
+    // listeners globales
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    // no iniciar arrastre si el objetivo es interactivo
+    if (isInteractiveTarget(e.target)) return;
+    // sólo respuesta a botón primario
+    if (e.button && e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pointerIdRef.current = e.pointerId;
+    e.preventDefault();
+    startDrag(e.clientX, e.clientY);
+  };
+
+  const onPointerMove = (ev: PointerEvent) => {
+    if (!draggingRef.current) return;
+    const nx = ev.clientX - offsetRef.current.x;
+    const ny = ev.clientY - offsetRef.current.y;
+    setPos(constrainToViewport(nx, ny));
+  };
+
+  const onPointerUp = (ev?: PointerEvent) => {
+    draggingRef.current = false;
+    pointerIdRef.current = null;
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('pointercancel', onPointerUp);
+  };
+
+  const constrainToViewport = (nx: number, ny: number) => {
+    const margin = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const el = containerRef.current;
+    if (!el) return { x: nx, y: ny };
+    const rect = el.getBoundingClientRect();
+    let x = nx;
+    let y = ny;
+    if (x < margin) x = margin;
+    if (x + rect.width > vw - margin) x = vw - rect.width - margin;
+    if (y < margin) y = margin;
+    if (y + rect.height > vh - margin) y = vh - rect.height - margin;
+    return { x, y };
+  };
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- handle submit (igual que tu implementation original) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoadingSale(true);
@@ -56,7 +133,7 @@ export default function SellView() {
       storeId,
       quantity,
       size: String(size).trim(),
-      paymentMethod: String(paymentMethod).trim(), // <-- agregado aquí
+      paymentMethod: String(paymentMethod).trim(),
     };
 
     if (appliedPrice !== 0) {
@@ -86,7 +163,19 @@ export default function SellView() {
   };
 
   return (
-    <div className={styles.container}>
+    <div
+      ref={containerRef}
+      className={styles.container}
+      // hacemos que el container sea "flotante" y movible por toda la página
+      style={{
+        position: 'fixed',
+        left: pos.x,
+        top: pos.y,
+        zIndex: 9999,
+        touchAction: 'none', // mejora la interacción táctil con pointer events
+      }}
+      onPointerDown={onPointerDown}
+    >
       <form onSubmit={handleSubmit} className={styles.sale}>
         {errorSale && <div style={{ color: 'red' }}>{errorSale}</div>}
         {successSale && <div style={{ color: 'green' }}>{successSale}</div>}
